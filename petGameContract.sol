@@ -18,15 +18,15 @@ contract PetGameContract is ERC721, ERC721Enumerable, Ownable {
         Rarity rarity;
         AgeStage ageStage;
         uint256 birthTime;
-        string petType;
-        string name;
+        uint8 petType;
+        bytes32 name;
     }
 
     // Struct to return detailed pet info including tokenId
     struct PetInfo {
         uint256 tokenId;
-        string name;
-        string petType;
+        bytes32 name;
+        uint8 petType;
         Rarity rarity;
         AgeStage ageStage;
         uint256 birthTime;
@@ -43,8 +43,9 @@ contract PetGameContract is ERC721, ERC721Enumerable, Ownable {
     // Mapping from token ID to the timestamp when playtime staking ends
     mapping(uint256 => uint256) private _playtimeStakedUntil;
 
-    // Available pet type names
-    string[] private _petTypeNames = ["Barkley", "Nibbles", "Whiskoo", "Peepin", "Slowmi"];
+    // Available pet type names - REMOVED to save space
+    // string[] private _petTypeNames = ["Barkley", "Nibbles", "Whiskoo", "Peepin", "Slowmi"];
+    uint8 private constant NUM_PET_TYPES = 5; // Store the count
 
     // Constants
     uint256 private constant STAKING_DURATION = 30 days; // For age progression
@@ -54,7 +55,7 @@ contract PetGameContract is ERC721, ERC721Enumerable, Ownable {
     event Staked(uint256 indexed tokenId, address indexed owner, uint256 stakedUntilTimestamp); // Age stake
     event Unstaked(uint256 indexed tokenId, address indexed owner);
     event PetAgeStageUpdated(uint256 indexed tokenId, AgeStage newStage);
-    event PetNameChanged(uint256 indexed tokenId, string newName);
+    event PetNameChanged(uint256 indexed tokenId, bytes32 newName);
     event StakedForPlaytime(uint256 indexed tokenId, address indexed owner, uint256 stakedUntilTimestamp);
     event UnstakedFromPlaytime(uint256 indexed tokenId, address indexed owner);
     event PlaytimeRewardMinted(uint256 indexed rewardTokenId, address indexed owner, uint256 indexed sourceTokenId);
@@ -83,16 +84,17 @@ contract PetGameContract is ERC721, ERC721Enumerable, Ownable {
         else if (rarityRand < 95) { initialRarity = Rarity.Rare; }
         else { initialRarity = Rarity.Legendary; }
 
-        // Determine initial PetType randomly from the array
-        uint256 typeIndex = uint256(randomHash) % _petTypeNames.length;
-        string memory initialPetType = _petTypeNames[typeIndex];
+        // Determine initial PetType randomly
+        // uint256 typeIndex = uint256(randomHash) % _petTypeNames.length;
+        // string memory initialPetType = _petTypeNames[typeIndex];
+        uint8 initialPetType = uint8(uint256(randomHash) % NUM_PET_TYPES); // Use uint8 ID
 
         _pets[tokenId] = Pet({
             rarity: initialRarity,
             ageStage: AgeStage.Baby,
             birthTime: block.timestamp,
-            petType: initialPetType,
-            name: initialPetType
+            petType: initialPetType, // Use uint8 ID
+            name: bytes32(uint256(initialPetType)) // Default name is bytes32 representation of type ID
         });
     }
 
@@ -117,14 +119,15 @@ contract PetGameContract is ERC721, ERC721Enumerable, Ownable {
     }
 
     // Function to set a new name for a pet
-    function setPetName(uint256 tokenId, string calldata newName) public {
+    function setPetName(uint256 tokenId, bytes32 newName) public {
         require(ownerOf(tokenId) == msg.sender, "SetPetName: Not owner");
         require(_stakedUntil[tokenId] == 0, "SetPetName: Pet is staked for age");
         require(_playtimeStakedUntil[tokenId] == 0, "SetPetName: Pet is staked for playtime");
-        require(bytes(newName).length > 0, "SetPetName: Name cannot be empty");
+        // require(bytes(newName).length > 0, "SetPetName: Name cannot be empty"); // Use bytes32 check
+        require(newName != bytes32(0), "SetPetName: Name cannot be empty");
 
         _pets[tokenId].name = newName;
-        emit PetNameChanged(tokenId, newName);
+        emit PetNameChanged(tokenId, newName); // Emit bytes32
     }
 
     // --- Staking Logic (Age Progression) ---
@@ -198,9 +201,11 @@ contract PetGameContract is ERC721, ERC721Enumerable, Ownable {
         rewardRarity = Rarity(uint8(calculatedLevel));
 
         bytes32 randomHash = keccak256(abi.encodePacked(block.timestamp, block.difficulty, msg.sender, tokenId, "reward")); // Add salt
-        uint256 typeIndex = uint256(randomHash) % _petTypeNames.length;
-        string memory rewardPetType = _petTypeNames[typeIndex];
-        string memory rewardName = rewardPetType; // Default name is type
+        // uint256 typeIndex = uint256(randomHash) % _petTypeNames.length;
+        // string memory rewardPetType = _petTypeNames[typeIndex];
+        // string memory rewardName = rewardPetType; // Default name is type
+        uint8 rewardPetType = uint8(uint256(randomHash) % NUM_PET_TYPES); // Use uint8 ID
+        bytes32 rewardName = bytes32(uint256(rewardPetType)); // Default name is bytes32 representation of type ID
 
         // --- Mint Reward NFT --- //
         uint256 rewardTokenId = _tokenIdCounter.current();
@@ -211,8 +216,8 @@ contract PetGameContract is ERC721, ERC721Enumerable, Ownable {
             rarity: rewardRarity,
             ageStage: AgeStage.Baby, // Rewards always start as Baby
             birthTime: block.timestamp,
-            petType: rewardPetType,
-            name: rewardName
+            petType: rewardPetType, // Use uint8 ID
+            name: rewardName // Use bytes32 name
         });
 
         emit PlaytimeRewardMinted(rewardTokenId, msg.sender, tokenId);
