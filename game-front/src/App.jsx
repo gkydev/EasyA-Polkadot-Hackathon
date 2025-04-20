@@ -14,7 +14,7 @@ import contractAbiString from './abi.json?raw';
 import { COLOR_BG_LIGHT, COLOR_BG_DARK } from './theme'; // Import specific colors if needed from theme export
 
 // --- Contract Details --- (Replace with your actual values)
-const CONTRACT_ADDRESS = '0x6f584c0ad33d447fd7d8faCc00f4D5603b582Bc2'; // <-- Replace this!
+const CONTRACT_ADDRESS = '0x62719afbd53e1ebba97ac8efb3affdc9279a4f60'; // <-- Replace this!
 // Parse the raw string into a JavaScript object
 const CONTRACT_ABI = JSON.parse(contractAbiString);
 // --- -------------- --- 
