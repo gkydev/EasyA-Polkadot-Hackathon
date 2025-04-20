@@ -29,6 +29,7 @@ function App() {
   const [pets, setPets] = useState([])
   const [selectedPetId, setSelectedPetId] = useState(null); // <-- New state for selected pet
   const [claimingPetId, setClaimingPetId] = useState(null); // ID of pet currently being claimed
+  const [isStakingLoading, setIsStakingLoading] = useState(false); // <-- Add state for staking button
   const [isRewardModalOpen, setIsRewardModalOpen] = useState(false); // Control modal visibility
   const [rewardPet, setRewardPet] = useState(null); // Details of the reward pet for the modal
 
@@ -222,7 +223,7 @@ function App() {
         return
     }
     console.log('Open Box clicked')
-    setIsLoading(true)
+    setIsLoading(true) // Use general isLoading for opening box
     setError(null)
     try {
       const tx = await contract.openBox() 
@@ -239,7 +240,7 @@ function App() {
       console.error('Open Box failed:', err)
       setError(`Failed to open box: ${err.message || 'Unknown error'}`)
     } finally {
-      setIsLoading(false)
+      setIsLoading(false) // Stop general isLoading
     }
   }
 
@@ -257,7 +258,7 @@ function App() {
           return
       }
       console.log(`Staking pet ${selectedPetId} for playtime...`)
-      setIsLoading(true) // Use general loading for now, or add specific staking loading state
+      setIsStakingLoading(true) // <-- Use specific staking loading state
       setError(null)
       try {
           const tx = await contract.stakeForPlaytime(selectedPetId);
@@ -275,7 +276,7 @@ function App() {
           console.error('Stake for playtime failed:', err);
           setError(`Failed to stake pet: ${err.message || 'Unknown error'}`);
       } finally {
-          setIsLoading(false);
+          setIsStakingLoading(false); // <-- Stop specific staking loading state
       }
   };
 
@@ -431,17 +432,23 @@ function App() {
                 <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap', justifyContent: 'center' }}>
                     <OpenBoxButton 
                       openBox={handleOpenBox}
-                      isLoading={isLoading} 
+                      isLoading={isLoading} // Use isLoading for OpenBox
                     />
                     {/* Add Stake Button - Enabled only if a non-staked pet is selected */} 
                     <Button 
                         variant="contained"
                         color="secondary" // Use Pink for this action
                         onClick={handleStakeForPlaytime}
-                        disabled={!selectedPetId || !canStakeSelectedPet || isLoading}
+                        // Disable if:
+                        // - No pet is selected OR
+                        // - Selected pet cannot be staked OR
+                        // - Staking is currently in progress (isStakingLoading) OR
+                        // - Box opening is in progress (isLoading) OR
+                        // - Claiming is in progress (claimingPetId)
+                        disabled={!selectedPetId || !canStakeSelectedPet || isStakingLoading || isLoading || !!claimingPetId}
                         sx={{ minWidth: '220px' }} // Match other button width
                     >
-                        {isLoading && selectedPetId ? <CircularProgress size={20} sx={{ color: 'white', mr: 1}} /> : null}
+                        {isStakingLoading ? <CircularProgress size={20} sx={{ color: 'white', mr: 1}} /> : null} {/* Show loading based on isStakingLoading */} 
                         Stake Selected Pet for Playtime
                     </Button>
                 </Box>
@@ -452,12 +459,11 @@ function App() {
                   isLoading={isPetsLoading} 
                   selectedPetId={selectedPetId}
                   onSelectPet={handleSelectPet}
-                  onStakeForPlaytime={handleStakeForPlaytime}
                   onClaimReward={handleClaimReward}
                   claimingPetId={claimingPetId}
-                  isStaking={isLoading}
+                  error={error}
                 />
-            </Box>
+              </Box>
           )}
 
         </Box>
