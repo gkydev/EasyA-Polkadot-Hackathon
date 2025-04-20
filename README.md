@@ -17,7 +17,7 @@ PetiDot allows users to connect their Web3 wallet (like MetaMask) to interact wi
 *   **Pet Collection Viewing:** Display all owned PetiDot NFTs with their details (Name, ID, Type, Rarity, Age Stage, Staking Status).
 *   **Name Customization:** Change the name of your owned pets.
 *   **Training (Age Staking):** Stake pets to train them. After a set duration (e.g., 30 days in the contract), unstaking advances the pet's age stage (Baby -> Teen -> Adult).
-*   **Playtime Staking:** Stake pets for a different duration (e.g., 7 days in the contract) for "Playtime".
+*   **Playtime Staking:** Send your pets to Playtime to earn rewards.
 *   **Playtime Rewards:** Claim a reward (another PetiDot NFT, potentially based on the staked pet's rarity/age) after the Playtime staking period ends.
 *   **NFT Details Display:** View individual pet details including name, type, rarity (Common, Uncommon, Rare, Legendary), age stage (Baby, Teen, Adult), and staking status.
 *   **Reward Modals:** See the pet you received after opening a box or claiming a playtime reward.
@@ -58,7 +58,7 @@ PetiDot allows users to connect their Web3 wallet (like MetaMask) to interact wi
 
 *   The core logic resides in the `PetGameContract.sol` file.
 *   Deployed Address: `0x62719afbd53e1ebba97ac8efb3affdc9279a4f60` (on the specified network)
-*   The contract handles minting, staking, reward calculation, and ownership based on the ERC721 standard.
+*   The contract handles minting, staking, reward calculation, and ownership.
 
 ## Basic Gameplay Loop
 
