@@ -30,8 +30,10 @@ function App() {
   const [selectedPetId, setSelectedPetId] = useState(null); // <-- New state for selected pet
   const [claimingPetId, setClaimingPetId] = useState(null); // ID of pet currently being claimed
   const [isStakingLoading, setIsStakingLoading] = useState(false); // <-- Add state for staking button
-  const [isRewardModalOpen, setIsRewardModalOpen] = useState(false); // Control modal visibility
-  const [rewardPet, setRewardPet] = useState(null); // Details of the reward pet for the modal
+  const [isRewardModalOpen, setIsRewardModalOpen] = useState(false); // Control claim reward modal visibility
+  const [rewardPet, setRewardPet] = useState(null); // Details of the claim reward pet for the modal
+  const [isBoxOpenModalOpen, setIsBoxOpenModalOpen] = useState(false); // Control box open modal visibility
+  const [boxOpenPet, setBoxOpenPet] = useState(null); // Details of the pet from opening a box
 
   // Define PetTypeName map here so it's accessible by formatPetInfo
   const PetTypeName = {
@@ -217,25 +219,68 @@ function App() {
 
   // Open Box Handler (needs contract)
   const handleOpenBox = async () => {
-    if (!contract || !provider) { 
-        setError("Contract or Provider not initialized. Please connect wallet first.") 
-        console.log("handleOpenBox: Contract or Provider not ready.")
+    if (!contract || !provider || !account) { // Added account check
+        setError("Wallet not connected or contract not initialized.")
+        console.log("handleOpenBox: Wallet/Contract/Provider not ready.")
         return
     }
     console.log('Open Box clicked')
     setIsLoading(true) // Use general isLoading for opening box
     setError(null)
+    // Store current pet IDs to compare later
+    const currentPetIds = new Set(pets.map(p => p.tokenId));
     try {
-      const tx = await contract.openBox() 
+      const tx = await contract.openBox()
       console.log('Open box transaction sent:', tx.hash)
       const receipt = await waitForTransaction(tx.hash);
-      console.log('Transaction Receipt obtained via polling:', receipt); 
+      console.log('Transaction Receipt obtained via polling:', receipt);
 
-      if (receipt.status !== 1) { 
+      if (receipt.status !== 1) {
          throw new Error(`Transaction failed: status code ${receipt.status}`);
       }
-      console.log('Box opened successfully! Transaction confirmed.')
-      fetchPets(account, contract)
+      console.log('Box opened successfully! Transaction confirmed. Refreshing pets...')
+      
+      // --- Workaround: Fetch all pets again and find the new one --- 
+      await fetchPets(account, contract); // fetchPets updates the 'pets' state
+      
+      // We need to access the *updated* pets state after fetchPets completes.
+      // Since fetchPets updates state asynchronously, we get the latest state
+      // via a function passed to the state setter, or more reliably, by waiting
+      // for the state update (though that's complex). A simpler approach here
+      // is to re-fetch *specifically* for the purpose of finding the new pet,
+      // assuming fetchPets is relatively quick.
+      
+      // Let's slightly modify fetchPets to *return* the fetched pets
+      // Or, more simply for now, assume fetchPets has updated the state
+      // and access it in the 'finally' block *after* setIsLoading(false) is set?
+      // No, that's not reliable. Let's use the state directly after await.
+      
+      // This relies on the 'pets' state being updated by the time the next line runs
+      // which *should* be the case after awaiting fetchPets.
+      let newPet = null;
+      // Access the LATEST pets state via a functional update pattern won't work here.
+      // We need the state *value* after fetchPets(). Let's assume the state is updated.
+      const updatedPets = await contract.getPetsByOwner(account); // Refetch manually to be sure
+      const formattedUpdatedPets = updatedPets.map(formatPetInfo);
+
+      for (const pet of formattedUpdatedPets) {
+          if (!currentPetIds.has(pet.tokenId)) {
+              newPet = pet;
+              break;
+          }
+      }
+
+      if (newPet) {
+          console.log("Found new pet:", newPet);
+          setBoxOpenPet(newPet); // Set the found pet for the modal
+          setIsBoxOpenModalOpen(true); // Open the modal
+      } else {
+          console.warn("Could not identify the newly minted pet after opening the box.");
+          // Optionally set an error or just don't show the modal
+          setError("Opened box, but couldn't identify the new pet. Check your pets list.");
+      }
+      // --- End Workaround ---
+
     } catch (err) {
       console.error('Open Box failed:', err)
       setError(`Failed to open box: ${err.message || 'Unknown error'}`)
@@ -358,6 +403,12 @@ function App() {
     setRewardPet(null);
   };
 
+  // --- Close Box Open Modal ---
+  const handleCloseBoxOpenModal = () => {
+    setIsBoxOpenModalOpen(false);
+    setBoxOpenPet(null);
+  };
+
   // Find the currently selected pet object for the stake button logic
   const selectedPetObject = pets.find(p => p.tokenId === selectedPetId);
   const canStakeSelectedPet = selectedPetObject
@@ -429,7 +480,14 @@ function App() {
           {account && (
              <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 {/* Action Buttons Row */} 
-                <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap', justifyContent: 'center' }}>
+                <Box sx={{ 
+                    display: 'flex', 
+                    flexDirection: 'row', // Explicitly set direction to row
+                    gap: 2, 
+                    mb: 3, 
+                    flexWrap: 'wrap', 
+                    justifyContent: 'center' 
+                }}>
                     <OpenBoxButton 
                       openBox={handleOpenBox}
                       isLoading={isLoading} // Use isLoading for OpenBox
@@ -439,6 +497,7 @@ function App() {
                         variant="contained"
                         color="secondary" // Use Pink for this action
                         onClick={handleStakeForPlaytime}
+                        
                         // Disable if:
                         // - No pet is selected OR
                         // - Selected pet cannot be staked OR
@@ -446,7 +505,10 @@ function App() {
                         // - Box opening is in progress (isLoading) OR
                         // - Claiming is in progress (claimingPetId)
                         disabled={!selectedPetId || !canStakeSelectedPet || isStakingLoading || isLoading || !!claimingPetId}
-                        sx={{ minWidth: '220px' }} // Match other button width
+                        sx={{ 
+                            minWidth: '220px', // Match other button width
+                            color: 'white' // Set text color to white
+                        }}
                     >
                         {isStakingLoading ? <CircularProgress size={20} sx={{ color: 'white', mr: 1}} /> : null} {/* Show loading based on isStakingLoading */} 
                         Stake Selected Pet for Playtime
@@ -474,6 +536,15 @@ function App() {
          open={isRewardModalOpen}
          onClose={handleCloseRewardModal}
          pet={rewardPet}
+         title="🎉 Reward Claimed! 🎉" // Explicit title for claim
+      />
+
+      {/* Box Open Modal */}
+      <RewardModal
+         open={isBoxOpenModalOpen}
+         onClose={handleCloseBoxOpenModal}
+         pet={boxOpenPet}
+         title="✨ New Pet Acquired! ✨" // Title for opening box
       />
     </Box>
   )

@@ -51,7 +51,7 @@ const style = {
   background: `linear-gradient(145deg, ${COLOR_WHITE_GRAD_START} 0%, ${COLOR_WHITE_GRAD_END} 100%)`, // Use gradient
 };
 
-export function RewardModal({ open, onClose, pet }) {
+export function RewardModal({ open, onClose, pet, title }) {
   const [imageSrc, setImageSrc] = useState(null);
   const [imageLoading, setImageLoading] = useState(false);
 
@@ -116,10 +116,10 @@ export function RewardModal({ open, onClose, pet }) {
           </IconButton>
 
           <Typography id="reward-modal-title" variant="h5" component="h2" align="center" gutterBottom sx={{ color: '#6a1b9a', fontWeight: 'bold' }}>
-            🎉 Reward Claimed! 🎉
+            {title || 'Reward Acquired! 🎉'}
           </Typography>
           <Typography id="reward-modal-description" sx={{ mt: 1, mb: 3 }} align="center">
-            You received a new pet:
+            {title && title.includes('New Pet') ? 'You received a new pet:' : 'You received this reward:'}
           </Typography>
 
           <Card sx={{ 

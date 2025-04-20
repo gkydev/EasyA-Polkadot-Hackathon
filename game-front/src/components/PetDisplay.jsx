@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Box, Grid, Card, CardContent, CardMedia, Typography, Skeleton, Button, CircularProgress } from '@mui/material'
+import PetsIcon from '@mui/icons-material/Pets'; // Import PetsIcon
 // Import colors for direct use in sx prop if needed
 import { RARITY_COLORS, COLOR_WHITE_GRAD_START, COLOR_WHITE_GRAD_END } from '../theme' 
 import { calculateRemainingTime } from '../utils/formatTime' // Import the helper
@@ -129,7 +130,7 @@ function PetCard({ pet, isLoading, isSelected, onSelect, onClaimReward, isClaimi
 
   // Define card style here for reuse
   const cardSx = {
-    maxWidth: 345, 
+    width: 200, // Set fixed width
     m: 1, 
     transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out, border-color 0.2s ease-in-out', // Added border-color transition
     height: '100%', // Ensure cards in the same row have same height
@@ -138,14 +139,14 @@ function PetCard({ pet, isLoading, isSelected, onSelect, onClaimReward, isClaimi
     // Apply gradient background using imported colors
     background: `linear-gradient(145deg, ${COLOR_WHITE_GRAD_START} 0%, ${COLOR_WHITE_GRAD_END} 100%)`, 
     border: `3px solid ${isSelected ? '#FFFFFF' : rarityColor}`, // White border if selected, else rarity color
-    cursor: isLoading ? 'default' : 'pointer', // Pointer cursor only if not loading
+    cursor: isLoading || isPlaytimeStaked || isTimerFinished ? 'default' : 'pointer', // Conditional cursor
     position: 'relative', // For potential overlay/checkmark
     // Apply stronger shadow if selected
     boxShadow: isSelected 
         ? `0 0 20px 5px ${rarityColor}, 0 8px 25px rgba(0, 0, 0, 0.2)` 
         : '0 4px 12px rgba(0, 0, 0, 0.1)', 
     '&:hover': {
-        transform: isLoading ? 'none' : 'scale(1.03)', 
+        transform: (isLoading || isPlaytimeStaked || isTimerFinished) ? 'none' : 'scale(1.03)', // Disable hover scale if interaction disabled
         // Keep selection style on hover if selected, otherwise apply hover glow
         boxShadow: isSelected 
             ? `0 0 20px 5px ${rarityColor}, 0 8px 25px rgba(0, 0, 0, 0.2)` 
@@ -252,6 +253,7 @@ function PetCard({ pet, isLoading, isSelected, onSelect, onClaimReward, isClaimi
             height: 140, // Fixed height for image area
             objectFit: 'contain', 
             flexShrink: 0,
+            mt: '5px', // <-- Add margin top
             // Dim image slightly if playtime overlay is active
             opacity: (isPlaytimeStaked || isTimerFinished) ? 0.2 : 1, 
             transition: 'opacity 0.3s'
@@ -260,15 +262,28 @@ function PetCard({ pet, isLoading, isSelected, onSelect, onClaimReward, isClaimi
         alt={`${typeName} Pet NFT ${pet.tokenId}`}
       />
       <CardContent sx={{ flexGrow: 1, pointerEvents: (isPlaytimeStaked || isTimerFinished) ? 'none' : 'auto' /* Prevent text selection under overlay */ }}> {/* Allow content to grow */}
-        <Typography gutterBottom variant="h6" component="div" noWrap title={petName}> 
+        <Typography gutterBottom variant="h6" component="div" noWrap title={petName} sx={{ mb: 1 }}> 
           {petName} (#{pet.tokenId})
         </Typography>
-        <Typography variant="body2" sx={infoTextStyle}>
+        <Typography variant="body2" sx={{...infoTextStyle, mb: 0.5 }}>
           Type: {typeName}
         </Typography>
-        <Typography variant="body2" sx={infoTextStyle}>
-          Rarity: {rarityStr}
-        </Typography>
+        {/* Rarity Row with Paw Icon */}
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+            <Typography variant="body2" sx={infoTextStyle} component="span"> 
+              Rarity:&nbsp;{rarityStr}
+            </Typography>
+            <PetsIcon 
+              fontSize="small"
+              sx={{ 
+                 color: rarityColor, // Base color
+                 ml: 0.5, // Margin left from text now
+                 verticalAlign: 'middle', // Align icon vertically
+                 filter: `drop-shadow(0 0 3px ${rarityColor})`, // Glow effect
+                 // Add transition if needed for hover effects later
+              }} 
+            />
+        </Box>
         <Typography variant="body2" sx={infoTextStyle}>
           Age: {ageStageStr}
         </Typography>
