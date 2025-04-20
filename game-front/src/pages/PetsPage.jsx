@@ -8,9 +8,19 @@ export function PetsPage({
   isLoading,
   selectedPetId,
   onSelectPet,
+  // onStakeForPlaytime, // Removed - Handled in App.jsx
+  // canStakeSelectedPet, // Removed - Handled in App.jsx
   onClaimReward,
   claimingPetId,
-  error // Keep for error display
+  // isStaking, // Removed - Handled in App.jsx
+  error, // Keep for error display
+  // Add name editing props
+  editingNamePetId,
+  newNameInput,
+  onInitiateEditName,
+  onCancelEditName,
+  onNewNameChange,
+  onSavePetName
 }) {
   return (
     <Box sx={{ width: '100%', my: 0 }}> {/* Reduced top margin slightly */} 
@@ -20,7 +30,7 @@ export function PetsPage({
       </Typography> */}
 
       {/* --- Error Display within PetsPage --- */}
-      {error && selectedPetId && ( // Show errors related to staking/claiming only when a pet is selected perhaps
+      {error && (editingNamePetId || selectedPetId) && ( // Show errors related to editing/staking/claiming 
         <Typography color="error" align="center" sx={{ mb: 2, backgroundColor: 'rgba(255,0,0,0.1)', p:1, borderRadius: 1 }}>
           {error}
         </Typography>
@@ -34,6 +44,13 @@ export function PetsPage({
         onSelectPet={onSelectPet} 
         onClaimReward={onClaimReward} // Pass down claim handler
         claimingPetId={claimingPetId} // Pass down claiming ID
+        // Pass down name editing props
+        editingNamePetId={editingNamePetId}
+        newNameInput={newNameInput}
+        onInitiateEditName={onInitiateEditName}
+        onCancelEditName={onCancelEditName}
+        onNewNameChange={onNewNameChange}
+        onSavePetName={onSavePetName}
       />
     </Box>
   )

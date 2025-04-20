@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react'
-import { Box, Grid, Card, CardContent, CardMedia, Typography, Skeleton, Button, CircularProgress } from '@mui/material'
+import { Box, Grid, Card, CardContent, CardMedia, Typography, Skeleton, Button, CircularProgress, IconButton, TextField, Stack } from '@mui/material'
 import PetsIcon from '@mui/icons-material/Pets'; // Import PetsIcon
+import EditIcon from '@mui/icons-material/Edit'; // Added EditIcon
+import SaveIcon from '@mui/icons-material/Save'; // Added SaveIcon
+import CancelIcon from '@mui/icons-material/Cancel'; // Added CancelIcon
 // Import colors for direct use in sx prop if needed
 import { RARITY_COLORS, COLOR_WHITE_GRAD_START, COLOR_WHITE_GRAD_END } from '../theme' 
 import { calculateRemainingTime } from '../utils/formatTime' // Import the helper
@@ -51,7 +54,7 @@ const getPetImageSrc = (petType) => {
 // -------------------------
 
 // Single Pet Card Component
-function PetCard({ pet, isLoading, isSelected, onSelect, onClaimReward, isClaiming }) {
+function PetCard({ pet, isLoading, isSelected, onSelect, onClaimReward, isClaiming, isEditingName, newNameValue, onEditNameClick, onCancelEditClick, onNewNameChange, onSaveNameClick }) {
   const [imageSrc, setImageSrc] = useState(null); // State to hold resolved image URL
   const [remainingPlaytime, setRemainingPlaytime] = useState({ seconds: 0, formatted: ''});
 
@@ -194,8 +197,14 @@ function PetCard({ pet, isLoading, isSelected, onSelect, onClaimReward, isClaimi
       // mb: 0.5 // Optional: add some margin between lines
   };
 
+  // Determine staking status flags
+  const isAnyStaked = isPlaytimeStaked || isAgeStaked || isTimerFinished; // Combined flag for disabling edit
+
+  // Determine if edit button should be shown
+  const canEditName = !isAnyStaked && !isEditingName && !isLoading;
+
   return (
-    <Card sx={cardSx} onClick={isLoading || isPlaytimeStaked || isTimerFinished ? undefined : onSelect}> {/* Disable select click if playtime staked/finished */}
+    <Card sx={cardSx} onClick={isLoading || isAnyStaked ? undefined : (isEditingName ? undefined : onSelect) /* Disable select in edit mode */}>
       {/* Age Staked Badge */} 
       {isAgeStaked && !isPlaytimeStaked && !isTimerFinished && (
           <Box sx={{ position: 'absolute', top: 8, right: 8, bgcolor: 'rgba(0,0,0,0.6)', color: 'white', px: 1, py: 0.5, borderRadius: '4px', fontSize: '0.7rem', zIndex: 2 }}>
@@ -255,43 +264,109 @@ function PetCard({ pet, isLoading, isSelected, onSelect, onClaimReward, isClaimi
             flexShrink: 0,
             mt: '5px', // <-- Add margin top
             // Dim image slightly if playtime overlay is active
-            opacity: (isPlaytimeStaked || isTimerFinished) ? 0.2 : 1, 
+            opacity: (isAnyStaked) ? 0.2 : 1, 
             transition: 'opacity 0.3s'
         }} 
         image={imageSrc} 
         alt={`${typeName} Pet NFT ${pet.tokenId}`}
       />
-      <CardContent sx={{ flexGrow: 1, pointerEvents: (isPlaytimeStaked || isTimerFinished) ? 'none' : 'auto' /* Prevent text selection under overlay */ }}> {/* Allow content to grow */}
-        <Typography gutterBottom variant="h6" component="div" noWrap title={petName} sx={{ mb: 1 }}> 
-          {petName} (#{pet.tokenId})
-        </Typography>
-        <Typography variant="body2" sx={{...infoTextStyle, mb: 0.5 }}>
-          Type: {typeName}
-        </Typography>
-        {/* Rarity Row with Paw Icon */}
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
-            <Typography variant="body2" sx={infoTextStyle} component="span"> 
-              Rarity:&nbsp;{rarityStr}
-            </Typography>
-            <PetsIcon 
-              fontSize="small"
-              sx={{ 
-                 color: rarityColor, // Base color
-                 ml: 0.5, // Margin left from text now
-                 verticalAlign: 'middle', // Align icon vertically
-                 filter: `drop-shadow(0 0 3px ${rarityColor})`, // Glow effect
-                 // Add transition if needed for hover effects later
-              }} 
-            />
-        </Box>
-        <Typography variant="body2" sx={infoTextStyle}>
-          Age: {ageStageStr}
-        </Typography>
-        {/* Only show detailed stake times if not showing playtime overlay */}
-        {!isPlaytimeStaked && !isTimerFinished && isAgeStaked && (
-            <Typography variant="caption" color="info.main" display="block" sx={{mt: 1}}>
-                Staked (Age) until: {new Date(pet.stakedUntil * 1000).toLocaleDateString()}
-            </Typography>
+      <CardContent sx={{ flexGrow: 1, pointerEvents: (isAnyStaked) ? 'none' : 'auto', p: 2 }}> {/* Allow content to grow */}
+        {/* Name Display or Edit Input */} 
+        {isEditingName ? (
+             <Box sx={{ mb: 1 }}>
+                <TextField 
+                    label="New Pet Name"
+                    variant="outlined"
+                    size="small"
+                    fullWidth
+                    value={newNameValue}
+                    onChange={onNewNameChange}
+                    error={newNameValue.length > 31} // Basic validation indication
+                    helperText={newNameValue.length > 31 ? "Name too long (max ~31 chars)" : ""}
+                    sx={{ 
+                        mb: 1,
+                        input: { color: 'black' }, // Ensure input text is readable
+                        label: { color: 'grey.700' },
+                        '& .MuiOutlinedInput-root': { // Style the input field itself
+                            backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                            '& fieldset': {
+                                borderColor: 'rgba(0, 0, 0, 0.23)', // Default border
+                            },
+                            '&:hover fieldset': {
+                                borderColor: 'primary.main', // Border color on hover
+                            },
+                            '&.Mui-focused fieldset': {
+                                borderColor: 'primary.main', // Border color when focused
+                            },
+                        },
+                    }}
+                />
+                <Stack direction="row" spacing={1} justifyContent="flex-end">
+                    <Button 
+                        size="small" 
+                        onClick={onSaveNameClick} 
+                        variant="contained" 
+                        color="primary" 
+                        startIcon={<SaveIcon />}
+                        disabled={newNameValue.trim() === '' || newNameValue.length > 31} // Disable if empty or too long
+                    >
+                        Save
+                    </Button>
+                    <Button 
+                        size="small" 
+                        onClick={onCancelEditClick} 
+                        variant="outlined" 
+                        color="secondary"
+                        startIcon={<CancelIcon />}
+                    >
+                        Cancel
+                    </Button>
+                </Stack>
+            </Box>
+        ) : (
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                <Typography gutterBottom variant="h6" component="div" noWrap title={petName} sx={{ color: 'text.primary' /* Use primary text color (black/dark grey) */, flexGrow: 1, mr: 1 }}> 
+                    {petName} (#{pet.tokenId})
+                </Typography>
+                {canEditName && (
+                    <IconButton size="small" onClick={onEditNameClick} sx={{ color: 'rgba(0, 0, 0, 0.5)', '&:hover': { color: 'black' } }}> {/* Adjust edit icon color for contrast */}
+                        <EditIcon fontSize="inherit" />
+                    </IconButton>
+                )}
+            </Box>
+        )}
+
+        {/* Hide other info when editing name */} 
+        {!isEditingName && (
+            <>
+                <Typography variant="body2" sx={{...infoTextStyle, mb: 0.5 }}>
+                    Type: {typeName}
+                </Typography>
+                {/* Rarity Row with Paw Icon */}
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+                    <Typography variant="body2" sx={infoTextStyle} component="span"> 
+                        Rarity:&nbsp;{rarityStr}
+                    </Typography>
+                    <PetsIcon 
+                        fontSize="small"
+                        sx={{ 
+                            color: rarityColor, 
+                            ml: 0.5, 
+                            verticalAlign: 'middle', 
+                            filter: `drop-shadow(0 0 3px ${rarityColor})`, 
+                        }} 
+                    />
+                </Box>
+                <Typography variant="body2" sx={infoTextStyle}>
+                    Age: {ageStageStr}
+                </Typography>
+                {/* Conditional Age Staked Until text */} 
+                {!isPlaytimeStaked && !isTimerFinished && isAgeStaked && (
+                    <Typography variant="caption" color="info.main" display="block" sx={{mt: 1, color: 'rgba(255, 255, 255, 0.8)' }}>
+                        Staked (Age) until: {new Date(pet.stakedUntil * 1000).toLocaleDateString()}
+                    </Typography>
+                )}
+            </>
         )}
       </CardContent>
     </Card>
@@ -299,7 +374,21 @@ function PetCard({ pet, isLoading, isSelected, onSelect, onClaimReward, isClaimi
 }
 
 // Main Pet Display Component
-export function PetDisplay({ pets, isLoading, selectedPetId, onSelectPet, onClaimReward, claimingPetId }) {
+export function PetDisplay({ 
+    pets, 
+    isLoading, 
+    selectedPetId, 
+    onSelectPet, 
+    onClaimReward, 
+    claimingPetId, 
+    // Add name editing props
+    editingNamePetId,
+    newNameInput,
+    onInitiateEditName,
+    onCancelEditName,
+    onNewNameChange,
+    onSavePetName 
+}) {
   const displayPets = isLoading ? Array.from(new Array(3)) : pets 
 
   if (!isLoading && pets.length === 0) {
@@ -339,6 +428,12 @@ export function PetDisplay({ pets, isLoading, selectedPetId, onSelectPet, onClai
                         onSelect={() => onSelectPet(pet?.tokenId)}
                         onClaimReward={() => onClaimReward(pet?.tokenId)}
                         isClaiming={isClaimingThisPet}
+                        isEditingName={editingNamePetId === pet?.tokenId}
+                        newNameValue={newNameInput}
+                        onEditNameClick={() => onInitiateEditName(pet?.tokenId, pet?.name)}
+                        onCancelEditClick={onCancelEditName}
+                        onNewNameChange={onNewNameChange}
+                        onSaveNameClick={onSavePetName}
                     />
                 </Grid>
             )

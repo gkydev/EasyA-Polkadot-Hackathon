@@ -34,6 +34,8 @@ function App() {
   const [rewardPet, setRewardPet] = useState(null); // Details of the claim reward pet for the modal
   const [isBoxOpenModalOpen, setIsBoxOpenModalOpen] = useState(false); // Control box open modal visibility
   const [boxOpenPet, setBoxOpenPet] = useState(null); // Details of the pet from opening a box
+  const [editingNamePetId, setEditingNamePetId] = useState(null); // ID of pet whose name is being edited
+  const [newNameInput, setNewNameInput] = useState(''); // Input field value for new name
 
   // Define PetTypeName map here so it's accessible by formatPetInfo
   const PetTypeName = {
@@ -409,6 +411,68 @@ function App() {
     setBoxOpenPet(null);
   };
 
+  // --- Pet Name Editing Handlers ---
+  const handleInitiateEditName = (tokenId, currentName) => {
+    console.log(`Initiating name edit for token ${tokenId}, current name: ${currentName}`);
+    setEditingNamePetId(tokenId);
+    setNewNameInput(currentName);
+    setError(null); // Clear previous errors
+  };
+
+  const handleCancelEditName = () => {
+    console.log("Cancelling name edit.");
+    setEditingNamePetId(null);
+    setNewNameInput('');
+  };
+
+  const handleNewNameInputChange = (event) => {
+    setNewNameInput(event.target.value);
+  };
+
+  const handleSavePetName = async () => {
+    if (!contract || !editingNamePetId || newNameInput.trim() === '') {
+        setError("Cannot save name: Missing contract, pet selection, or name input.");
+        console.error("Save Name Error:", { contract, editingNamePetId, newNameInput });
+        return;
+    }
+
+    // Basic validation (optional: add more robust checks)
+    if (newNameInput.length > 31) { // bytes32 limit approximation
+        setError("Pet name is too long (max ~31 characters).");
+        return;
+    }
+
+    console.log(`Saving new name "${newNameInput}" for pet ${editingNamePetId}`);
+    setIsLoading(true); // Use general loading, or add specific isSavingName state
+    setError(null);
+    let encodedName;
+    try {
+        // Encode the name to bytes32
+        encodedName = ethers.encodeBytes32String(newNameInput.trim());
+        console.log(`Encoded name: ${encodedName}`);
+
+        const tx = await contract.setPetName(editingNamePetId, encodedName);
+        console.log('Set name transaction sent:', tx.hash);
+        const receipt = await waitForTransaction(tx.hash);
+        console.log('Set name transaction confirmed:', receipt);
+
+        if (receipt.status !== 1) {
+            throw new Error(`Set name transaction failed: status code ${receipt.status}`);
+        }
+
+        console.log(`Pet ${editingNamePetId} name updated successfully!`);
+        await fetchPets(account, contract); // Refresh pet list
+        handleCancelEditName(); // Reset editing state on success
+
+    } catch (err) {
+        console.error('Set pet name failed:', err);
+        setError(`Failed to set pet name: ${err.message || 'Unknown error'}`);
+        // Don't cancel edit on error, let user try again or cancel
+    } finally {
+        setIsLoading(false); 
+    }
+  };
+
   // Find the currently selected pet object for the stake button logic
   const selectedPetObject = pets.find(p => p.tokenId === selectedPetId);
   const canStakeSelectedPet = selectedPetObject
@@ -427,25 +491,34 @@ function App() {
 
       {/* Top Right Connected Wallet Info */} 
       {account && (
-        <Box sx={{
+        <Box sx={{ 
             position: 'absolute',
             top: 16, // Adjust spacing as needed
             right: 16, // Adjust spacing as needed
-            p: 1.5,
-            bgcolor: 'rgba(0, 0, 0, 0.6)', // Semi-transparent background
-            borderRadius: '8px',
-            boxShadow: 3,
-            color: 'white'
+            p: '12px 16px', // Adjusted padding
+            // bgcolor: 'rgba(0, 0, 0, 0.6)', // Removed black background
+            background: 'rgba(56, 19, 107, 0.7)', // Semi-transparent dark purple (adjust color/opacity as needed)
+            borderRadius: '12px', // Slightly more rounded
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)', // Slightly softer shadow
+            color: 'white',
+            backdropFilter: 'blur(5px)', // Add blur effect for frosted glass look
+            WebkitBackdropFilter: 'blur(5px)', // For Safari support
+            border: '1px solid rgba(255, 255, 255, 0.1)' // Subtle border
         }}>
-           <Typography variant="caption" display="block" sx={{ mb: 0.5 }}>
+           <Typography variant="caption" display="block" sx={{ mb: 0.5, opacity: 0.8 }}>
                Wallet Connected
-           </Typography>
+        </Typography>
            <Chip 
-            icon={<AccountBalanceWalletIcon fontSize='small' sx={{ color: 'white'}}/>}
+            icon={<AccountBalanceWalletIcon fontSize='small' sx={{ color: '#6B157D' /* Dark Purple Icon */ }}/>}
             label={`${account.substring(0, 6)}...${account.substring(account.length - 4)}`}
             variant="outlined"
             size="small"
-            sx={{ color: 'white', borderColor: 'rgba(255, 255, 255, 0.5)' }}
+            sx={{ 
+                color: 'white', 
+                borderColor: 'rgba(255, 255, 255, 0.5)', 
+                backgroundColor: 'rgba(255, 255, 255, 0.05)', // Very subtle background for the chip itself
+                height: '28px' // Adjust height if needed
+            }}
           />
         </Box>
       )}
@@ -524,6 +597,12 @@ function App() {
                   onClaimReward={handleClaimReward}
                   claimingPetId={claimingPetId}
                   error={error}
+                  editingNamePetId={editingNamePetId}
+                  newNameInput={newNameInput}
+                  onInitiateEditName={handleInitiateEditName}
+                  onCancelEditName={handleCancelEditName}
+                  onNewNameChange={handleNewNameInputChange}
+                  onSavePetName={handleSavePetName}
                 />
               </Box>
           )}
