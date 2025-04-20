@@ -598,13 +598,19 @@ function App() {
 
           {/* Only show ConnectWallet button if account is NOT connected */} 
           {!account && (
-            <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center', mb: 3 }}>
+            <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
               <ConnectWallet 
                 // Pass only necessary props now
                 isLoading={isLoading} 
                 error={error}
                 connectWallet={handleConnectWallet}
               />
+              {/* Add tagline below ConnectWallet when not loading */}
+              {!isLoading && (
+                  <Typography variant="h6" sx={{ mt: 5, color: 'white', textAlign: 'center' }}>
+                      Get Your Paws on Polkadot's Cutest Pets!
+                  </Typography>
+              )}
             </Box>
           )}
 
