@@ -77,3 +77,7 @@ PetiDot allows users to connect their Web3 wallet (like MetaMask) to interact wi
 <img width="1746" alt="image" src="https://github.com/user-attachments/assets/e31aa934-7f67-46fc-a28f-12dcb5fb72df" />
 
 <img width="1788" alt="image" src="https://github.com/user-attachments/assets/d78eff75-045c-405a-a101-02143ca8ecab" />
+
+## Video Showcase
+
+Video url : https://www.loom.com/share/4b3e3b3f1a724c9f94ed835ae317d670?sid=8a0c1546-7f37-4460-a8b1-455c8f0fa1a9
