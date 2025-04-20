@@ -71,4 +71,9 @@ PetiDot allows users to connect their Web3 wallet (like MetaMask) to interact wi
 7.  **Wait & Unstake/Claim:**
     *   After the training duration, the "Finish Training" button will appear on the card. Click it to unstake and advance the pet's age stage.
     *   After the playtime duration, the "Claim Reward" button will appear on the card. Click it to receive a new reward pet.
-8.  **Repeat:** Collect more pets, train them, and send them for playtime! 
+8.  **Repeat:** Collect more pets, train them, and send them for playtime!
+
+## Game Screenshots
+<img width="1746" alt="image" src="https://github.com/user-attachments/assets/e31aa934-7f67-46fc-a28f-12dcb5fb72df" />
+
+<img width="1788" alt="image" src="https://github.com/user-attachments/assets/d78eff75-045c-405a-a101-02143ca8ecab" />
