@@ -36,6 +36,8 @@ function App() {
   const [boxOpenPet, setBoxOpenPet] = useState(null); // Details of the pet from opening a box
   const [editingNamePetId, setEditingNamePetId] = useState(null); // ID of pet whose name is being edited
   const [newNameInput, setNewNameInput] = useState(''); // Input field value for new name
+  const [ageStakingPetId, setAgeStakingPetId] = useState(null); // ID of pet being staked for age
+  const [ageUnstakingPetId, setAgeUnstakingPetId] = useState(null); // ID of pet being unstaked for age
 
   // Define PetTypeName map here so it's accessible by formatPetInfo
   const PetTypeName = {
@@ -473,6 +475,63 @@ function App() {
     }
   };
 
+  // --- Age Staking Handlers ---
+  const handleStakeForAge = async (tokenId) => {
+    if (!contract || !tokenId) {
+        setError("Cannot stake for age: Missing contract or token ID.");
+        return;
+    }
+    console.log(`Staking pet ${tokenId} for age...`);
+    setAgeStakingPetId(tokenId); // Set loading state for this pet
+    setError(null);
+    try {
+        const tx = await contract.stake(tokenId);
+        console.log('Stake for age transaction sent:', tx.hash);
+        const receipt = await waitForTransaction(tx.hash);
+        console.log('Stake for age transaction confirmed:', receipt);
+
+        if (receipt.status !== 1) {
+            throw new Error(`Stake for age transaction failed: status code ${receipt.status}`);
+        }
+        console.log(`Pet ${tokenId} staked for age successfully!`);
+        await fetchPets(account, contract); // Refresh pet list
+
+    } catch (err) {
+        console.error('Stake for age failed:', err);
+        setError(`Failed to stake for age: ${err.message || 'Unknown error'}`);
+    } finally {
+        setAgeStakingPetId(null); // Clear loading state
+    }
+  };
+
+  const handleUnstakeForAge = async (tokenId) => {
+    if (!contract || !tokenId) {
+        setError("Cannot unstake for age: Missing contract or token ID.");
+        return;
+    }
+    console.log(`Unstaking pet ${tokenId} for age...`);
+    setAgeUnstakingPetId(tokenId); // Set loading state for this pet
+    setError(null);
+    try {
+        const tx = await contract.unstake(tokenId);
+        console.log('Unstake for age transaction sent:', tx.hash);
+        const receipt = await waitForTransaction(tx.hash);
+        console.log('Unstake for age transaction confirmed:', receipt);
+
+        if (receipt.status !== 1) {
+            throw new Error(`Unstake for age transaction failed: status code ${receipt.status}`);
+        }
+        console.log(`Pet ${tokenId} unstaked for age successfully! Age may have updated.`);
+        await fetchPets(account, contract); // Refresh pet list to show new age stage
+
+    } catch (err) {
+        console.error('Unstake for age failed:', err);
+        setError(`Failed to unstake for age: ${err.message || 'Unknown error'}`);
+    } finally {
+        setAgeUnstakingPetId(null); // Clear loading state
+    }
+  };
+
   // Find the currently selected pet object for the stake button logic
   const selectedPetObject = pets.find(p => p.tokenId === selectedPetId);
   const canStakeSelectedPet = selectedPetObject
@@ -509,7 +568,7 @@ function App() {
                Wallet Connected
         </Typography>
            <Chip 
-            icon={<AccountBalanceWalletIcon fontSize='small' sx={{ color: '#6B157D' /* Dark Purple Icon */ }}/>}
+            icon={<AccountBalanceWalletIcon fontSize='small' color='#6B157D' /* Dark Purple Icon */ />}
             label={`${account.substring(0, 6)}...${account.substring(account.length - 4)}`}
             variant="outlined"
             size="small"
@@ -603,6 +662,10 @@ function App() {
                   onCancelEditName={handleCancelEditName}
                   onNewNameChange={handleNewNameInputChange}
                   onSavePetName={handleSavePetName}
+                  ageStakingPetId={ageStakingPetId}
+                  ageUnstakingPetId={ageUnstakingPetId}
+                  onStakeForAge={handleStakeForAge}
+                  onUnstakeForAge={handleUnstakeForAge}
                 />
               </Box>
           )}

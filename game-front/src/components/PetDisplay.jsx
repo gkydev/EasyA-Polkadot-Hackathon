@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react'
-import { Box, Grid, Card, CardContent, CardMedia, Typography, Skeleton, Button, CircularProgress, IconButton, TextField, Stack } from '@mui/material'
+import { Box, Grid, Card, CardContent, CardMedia, Typography, Skeleton, Button, CircularProgress, IconButton, TextField, Stack, CardActions } from '@mui/material'
 import PetsIcon from '@mui/icons-material/Pets'; // Import PetsIcon
 import EditIcon from '@mui/icons-material/Edit'; // Added EditIcon
 import SaveIcon from '@mui/icons-material/Save'; // Added SaveIcon
 import CancelIcon from '@mui/icons-material/Cancel'; // Added CancelIcon
+import UpdateIcon from '@mui/icons-material/Update'; // For Stake Age
+import LockOpenIcon from '@mui/icons-material/LockOpen'; // For Unstake Age
 // Import colors for direct use in sx prop if needed
 import { RARITY_COLORS, COLOR_WHITE_GRAD_START, COLOR_WHITE_GRAD_END } from '../theme' 
 import { calculateRemainingTime } from '../utils/formatTime' // Import the helper
@@ -54,7 +56,7 @@ const getPetImageSrc = (petType) => {
 // -------------------------
 
 // Single Pet Card Component
-function PetCard({ pet, isLoading, isSelected, onSelect, onClaimReward, isClaiming, isEditingName, newNameValue, onEditNameClick, onCancelEditClick, onNewNameChange, onSaveNameClick }) {
+function PetCard({ pet, isLoading, isSelected, onSelect, onClaimReward, isClaiming, isEditingName, newNameValue, onEditNameClick, onCancelEditClick, onNewNameChange, onSaveNameClick, isAgeStaking, isAgeUnstaking, onStakeAgeClick, onUnstakeAgeClick }) {
   const [imageSrc, setImageSrc] = useState(null); // State to hold resolved image URL
   const [remainingPlaytime, setRemainingPlaytime] = useState({ seconds: 0, formatted: ''});
 
@@ -123,13 +125,18 @@ function PetCard({ pet, isLoading, isSelected, onSelect, onClaimReward, isClaimi
   const rarityName = (Rarity[pet?.rarity] || 'common').toLowerCase();
   const rarityColor = RARITY_COLORS[rarityName] || RARITY_COLORS.common;
 
-  // Determine if pet is currently staked for playtime and time is left
-  const isPlaytimeStaked = remainingPlaytime.seconds > 0;
-  // Determine if staked for age (used for the small badge)
-  const isAgeStaked = pet?.stakedUntil > 0;
-
-  // Determine if the timer has finished
+  // --- Determine Status Flags ---
   const isTimerFinished = pet?.playtimeStakedUntil > 0 && remainingPlaytime.seconds <= 0;
+  const isPlaytimeStaked = pet?.playtimeStakedUntil > 0 && remainingPlaytime.seconds > 0; 
+  const isAgeStaked = pet?.stakedUntil > 0;
+  const isAnyStaked = isPlaytimeStaked || isAgeStaked || isTimerFinished; // Used for edit/select disabling
+  const isCurrentlyBusy = isClaiming || isEditingName || isAgeStaking || isAgeUnstaking || isLoading; // Any loading/editing state
+
+  // --- Refined Age Staking Eligibility ---
+  const isAdult = pet?.ageStage === 2; // Assuming AgeStage.Adult is index 2
+  const isEligibleToStakeForAge = !isAdult && !isAgeStaked && !isPlaytimeStaked;
+  const isEligibleToUnstakeForAge = isAgeStaked && !isPlaytimeStaked && (pet.stakedUntil * 1000 <= Date.now());
+  // -------------------------------------
 
   // Define card style here for reuse
   const cardSx = {
@@ -192,23 +199,42 @@ function PetCard({ pet, isLoading, isSelected, onSelect, onClaimReward, isClaimi
 
   // Define styles for card info text
   const infoTextStyle = {
-      fontFamily: 'Nunito, sans-serif', // Use Nunito for card info
-      color: 'text.primary', // Increase contrast (darker grey/black)
-      // mb: 0.5 // Optional: add some margin between lines
+      fontFamily: 'Nunito, sans-serif', 
+      color: 'text.primary', // Use primary text color (black/dark grey)
   };
-
-  // Determine staking status flags
-  const isAnyStaked = isPlaytimeStaked || isAgeStaked || isTimerFinished; // Combined flag for disabling edit
 
   // Determine if edit button should be shown
   const canEditName = !isAnyStaked && !isEditingName && !isLoading;
 
+  // Format Age Stake Date
+  const stakedUntilDateStr = isAgeStaked 
+      ? new Date(pet.stakedUntil * 1000).toLocaleDateString()
+      : '';
+
+  // Determine badge text and color
+  let badgeText = '';
+  let badgeColor = 'rgba(0,0,0,0.6)';
+  if (isAgeStaked && !isPlaytimeStaked && !isTimerFinished) {
+      if (isEligibleToUnstakeForAge) {
+          badgeText = 'Ready to Finish Training';
+          badgeColor = 'success.main';
+      } else {
+          badgeText = 'Training';
+          // badgeColor remains default black
+      }
+  }
+
   return (
-    <Card sx={cardSx} onClick={isLoading || isAnyStaked ? undefined : (isEditingName ? undefined : onSelect) /* Disable select in edit mode */}>
-      {/* Age Staked Badge */} 
-      {isAgeStaked && !isPlaytimeStaked && !isTimerFinished && (
-          <Box sx={{ position: 'absolute', top: 8, right: 8, bgcolor: 'rgba(0,0,0,0.6)', color: 'white', px: 1, py: 0.5, borderRadius: '4px', fontSize: '0.7rem', zIndex: 2 }}>
-              Staked (Age)
+    <Card sx={cardSx} onClick={isLoading || isAnyStaked || isEditingName ? undefined : onSelect /* Disable select if busy/staked/editing */}>
+      {/* Training Badge */} 
+      {badgeText && (
+          <Box sx={{ 
+              position: 'absolute', top: 8, right: 8, 
+              bgcolor: badgeColor, // Use dynamic color
+              color: 'white', px: 1, py: 0.5, 
+              borderRadius: '4px', fontSize: '0.7rem', zIndex: 2 
+          }}>
+              {badgeText} 
           </Box>
       )}
 
@@ -270,7 +296,7 @@ function PetCard({ pet, isLoading, isSelected, onSelect, onClaimReward, isClaimi
         image={imageSrc} 
         alt={`${typeName} Pet NFT ${pet.tokenId}`}
       />
-      <CardContent sx={{ flexGrow: 1, pointerEvents: (isAnyStaked) ? 'none' : 'auto', p: 2 }}> {/* Allow content to grow */}
+      <CardContent sx={{ flexGrow: 1, pointerEvents: (isAnyStaked) ? 'none' : 'auto', p: 2, pb: 1 /* Reduced bottom padding */ }}> {/* Allow content to grow */}
         {/* Name Display or Edit Input */} 
         {isEditingName ? (
              <Box sx={{ mb: 1 }}>
@@ -325,11 +351,11 @@ function PetCard({ pet, isLoading, isSelected, onSelect, onClaimReward, isClaimi
             </Box>
         ) : (
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                <Typography gutterBottom variant="h6" component="div" noWrap title={petName} sx={{ color: 'text.primary' /* Use primary text color (black/dark grey) */, flexGrow: 1, mr: 1 }}> 
+                <Typography gutterBottom variant="h6" component="div" noWrap title={petName} sx={{ color: 'text.primary' /* Use primary text color */, flexGrow: 1, mr: 1 }}> 
                     {petName} (#{pet.tokenId})
                 </Typography>
                 {canEditName && (
-                    <IconButton size="small" onClick={onEditNameClick} sx={{ color: 'rgba(0, 0, 0, 0.5)', '&:hover': { color: 'black' } }}> {/* Adjust edit icon color for contrast */}
+                    <IconButton size="small" onClick={onEditNameClick} sx={{ color: 'rgba(0, 0, 0, 0.5)', '&:hover': { color: 'black' } }}> {/* Keep edit icon dark */}
                         <EditIcon fontSize="inherit" />
                     </IconButton>
                 )}
@@ -360,15 +386,48 @@ function PetCard({ pet, isLoading, isSelected, onSelect, onClaimReward, isClaimi
                 <Typography variant="body2" sx={infoTextStyle}>
                     Age: {ageStageStr}
                 </Typography>
-                {/* Conditional Age Staked Until text */} 
-                {!isPlaytimeStaked && !isTimerFinished && isAgeStaked && (
-                    <Typography variant="caption" color="info.main" display="block" sx={{mt: 1, color: 'rgba(255, 255, 255, 0.8)' }}>
-                        Staked (Age) until: {new Date(pet.stakedUntil * 1000).toLocaleDateString()}
+                {/* Conditional Training Until text */} 
+                {isAgeStaked && !isPlaytimeStaked && !isTimerFinished && (
+                    <Typography variant="caption" display="block" sx={{mt: 0.5, color: 'text.secondary' /* Use secondary text color */ }}>
+                        {isEligibleToUnstakeForAge ? 'Finish Training Now' : `Training until: ${stakedUntilDateStr}`}
                     </Typography>
                 )}
             </>
         )}
       </CardContent>
+      
+      {/* Card Actions for Training Buttons */} 
+      {!isEditingName && ( // Show action area if not editing name
+          <CardActions sx={{ justifyContent: 'center', pt: 0, pb: 1 }}>
+              {/* Render Train button only if eligible */} 
+              {isEligibleToStakeForAge && (
+                  <Button 
+                      size="small" 
+                      variant='outlined'
+                      color="secondary"
+                      onClick={onStakeAgeClick} 
+                      disabled={isCurrentlyBusy} // Disable if *any* action/loading is active on this card
+                      startIcon={isAgeStaking ? <CircularProgress size={16} color="inherit" /> : <UpdateIcon />}
+                      sx={{ color: 'black', borderColor: 'rgba(255,255,255,0.5)', '&:hover': { borderColor: 'white'} }}
+                  >
+                      Train
+                  </Button>
+              )}
+              {/* Render Finish Training button only if eligible */} 
+              {isEligibleToUnstakeForAge && (
+                  <Button 
+                      size="small" 
+                      variant='contained'
+                      color="success"
+                      onClick={onUnstakeAgeClick} 
+                      disabled={isCurrentlyBusy} // Disable if *any* action/loading is active on this card
+                      startIcon={isAgeUnstaking ? <CircularProgress size={16} color="inherit" /> : <LockOpenIcon />}
+                  >
+                      Finish Training
+                  </Button>
+              )}
+          </CardActions>
+      )}
     </Card>
   )
 }
@@ -387,7 +446,12 @@ export function PetDisplay({
     onInitiateEditName,
     onCancelEditName,
     onNewNameChange,
-    onSavePetName 
+    onSavePetName,
+    // Add age staking props
+    ageStakingPetId,
+    ageUnstakingPetId,
+    onStakeForAge,
+    onUnstakeForAge
 }) {
   const displayPets = isLoading ? Array.from(new Array(3)) : pets 
 
@@ -419,6 +483,8 @@ export function PetDisplay({
         {displayPets.map((pet, index) => {
             const petTokenId = isLoading ? `skeleton-${index}` : pet.tokenId;
             const isClaimingThisPet = !isLoading && claimingPetId === pet.tokenId;
+            const isAgeStakingThisPet = ageStakingPetId === pet?.tokenId;
+            const isAgeUnstakingThisPet = ageUnstakingPetId === pet?.tokenId;
             return (
                 <Grid item key={petTokenId} xs={12} sm={6} md={4} lg={3}>
                     <PetCard 
@@ -426,14 +492,19 @@ export function PetDisplay({
                         isLoading={isLoading} 
                         isSelected={!isLoading && pet?.tokenId === selectedPetId}
                         onSelect={() => onSelectPet(pet?.tokenId)}
-                        onClaimReward={() => onClaimReward(pet?.tokenId)}
-                        isClaiming={isClaimingThisPet}
+                        onClaimReward={() => onClaimReward(pet?.tokenId)} 
+                        isClaiming={isClaimingThisPet} 
                         isEditingName={editingNamePetId === pet?.tokenId}
                         newNameValue={newNameInput}
                         onEditNameClick={() => onInitiateEditName(pet?.tokenId, pet?.name)}
                         onCancelEditClick={onCancelEditName}
                         onNewNameChange={onNewNameChange}
                         onSaveNameClick={onSavePetName}
+                        // Pass age staking props
+                        isAgeStaking={isAgeStakingThisPet}
+                        isAgeUnstaking={isAgeUnstakingThisPet}
+                        onStakeAgeClick={() => onStakeForAge(pet?.tokenId)}
+                        onUnstakeAgeClick={() => onUnstakeForAge(pet?.tokenId)}
                     />
                 </Grid>
             )

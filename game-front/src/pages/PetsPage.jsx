@@ -20,7 +20,12 @@ export function PetsPage({
   onInitiateEditName,
   onCancelEditName,
   onNewNameChange,
-  onSavePetName
+  onSavePetName,
+  // Add age staking props
+  ageStakingPetId,
+  ageUnstakingPetId,
+  onStakeForAge,
+  onUnstakeForAge
 }) {
   return (
     <Box sx={{ width: '100%', my: 0 }}> {/* Reduced top margin slightly */} 
@@ -30,7 +35,7 @@ export function PetsPage({
       </Typography> */}
 
       {/* --- Error Display within PetsPage --- */}
-      {error && (editingNamePetId || selectedPetId) && ( // Show errors related to editing/staking/claiming 
+      {error && (editingNamePetId || selectedPetId || ageStakingPetId || ageUnstakingPetId) && ( // Show errors related to editing/staking/claiming/age actions
         <Typography color="error" align="center" sx={{ mb: 2, backgroundColor: 'rgba(255,0,0,0.1)', p:1, borderRadius: 1 }}>
           {error}
         </Typography>
@@ -51,6 +56,11 @@ export function PetsPage({
         onCancelEditName={onCancelEditName}
         onNewNameChange={onNewNameChange}
         onSavePetName={onSavePetName}
+        // Pass down age staking props
+        ageStakingPetId={ageStakingPetId}
+        ageUnstakingPetId={ageUnstakingPetId}
+        onStakeForAge={onStakeForAge}
+        onUnstakeForAge={onUnstakeForAge}
       />
     </Box>
   )
