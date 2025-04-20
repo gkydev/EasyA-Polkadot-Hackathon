@@ -255,7 +255,7 @@ function PetCard({ pet, isLoading, isSelected, onSelect, onClaimReward, isClaimi
           }}>
               {isPlaytimeStaked && (
                   <>
-                      <Typography variant="button" sx={{ mb: 0.5 }}>Staked for Playtime</Typography>
+                      <Typography variant="button" sx={{ mb: 0.5 }}>At Playtime</Typography>
                       <Typography variant="h6">{remainingPlaytime.formatted}</Typography>
                       <Typography variant="caption">remaining</Typography>
                   </>

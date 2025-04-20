@@ -643,7 +643,7 @@ function App() {
                         }}
                     >
                         {isStakingLoading ? <CircularProgress size={20} sx={{ color: 'white', mr: 1}} /> : null} {/* Show loading based on isStakingLoading */} 
-                        Stake Selected Pet for Playtime
+                        Sent your pet to Playtime
                     </Button>
                 </Box>
 
