@@ -6,7 +6,7 @@ import { Box, Button, Typography, CircularProgress } from '@mui/material'
 const bubbleStyle = {
   position: 'absolute',
   borderRadius: '9999px',
-  backgroundColor: '#f472b6', // pink-400
+  backgroundColor: '#9D4EDD', // Use theme primary purple for bubbles
   opacity: 0.7,
 }
 
@@ -25,24 +25,17 @@ export function ConnectWallet({ isLoading, error, connectWallet }) {
       <Button 
         variant="contained"
         disabled={true}
-        sx={{
-          position: 'relative',
-          py: '12px',
-          px: '32px',
-          borderRadius: '9999px',
-          bgcolor: '#a855f7',
-          color: 'white',
-          fontWeight: 'bold',
-          fontSize: '1.125rem',
-          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)',
-          textTransform: 'none',
-          opacity: 0.6,
+        // Inherits base styles from theme, only specify changes for loading
+        sx={theme => ({ 
+          bgcolor: theme.palette.primary.dark, // Darker purple when loading/disabled
           cursor: 'wait',
-          '&:hover': {
-            bgcolor: '#a855f7',
-            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)'
-          }
-        }}
+          opacity: 0.6, // Use theme's disabled variant opacity if preferred
+          // Prevent hover effects when loading
+          '&:hover': { 
+             bgcolor: theme.palette.primary.dark, 
+             boxShadow: theme.shadows[4] // Keep base shadow 
+          } 
+        })}
       >
         <CircularProgress size={20} sx={{ color: 'white', mr: 1}} />
         Connecting...
@@ -56,26 +49,23 @@ export function ConnectWallet({ isLoading, error, connectWallet }) {
       <Button 
         variant="contained"
         onClick={handleButtonClick}
-        sx={{
-          position: 'relative',
-          py: '12px',
-          px: '32px',
-          borderRadius: '9999px',
-          bgcolor: '#a855f7',
-          color: 'white',
-          fontWeight: 'bold',
-          fontSize: '1.125rem',
-          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)',
-          textTransform: 'none',
-          transition: 'transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out',
-          '&:hover': {
-            transform: 'scale(1.05)',
-            bgcolor: '#a855f7',
-            boxShadow: '0 15px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+        // Inherits base styles from theme, only specify unique color and interactions
+        sx={theme => ({ 
+          position: 'relative', // Needed for bubbles
+          bgcolor: theme.palette.primary.main, // Purple from theme
+          transition: theme.transitions.create(['transform', 'box-shadow', 'background-color']), 
+          '&:hover': { 
+            transform: 'scale(1.05)', 
+            bgcolor: theme.palette.primary.light, // Slightly lighter purple on hover
+            boxShadow: theme.shadows[8], // Enhance shadow
           },
-          '&:active': { transform: 'scale(0.95)' },
-          '&:focus': { outline: 'none' }
-        }}
+          '&:active': { 
+            transform: 'scale(0.95)' 
+          },
+          '&:focus': { 
+            outline: 'none' 
+          }
+        })}
       >
         {/* Bubbles */}
         <Box sx={{ ...bubbleStyle, top: '-4px', left: '-4px', width: '16px', height: '16px' }} />
@@ -83,7 +73,7 @@ export function ConnectWallet({ isLoading, error, connectWallet }) {
         <Box sx={{ ...bubbleStyle, bottom: '-4px', right: '-4px', width: '16px', height: '16px' }} />
         
         {/* Button Text */}
-        <Box component="span" sx={{ position: 'relative', zIndex: 1 }}>
+        <Box component="span" sx={{ position: 'relative', zIndex: 1, color: 'white' }}>
           Connect Wallet
         </Box>
       </Button>
