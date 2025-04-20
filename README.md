@@ -6,6 +6,8 @@
 
 A simple blockchain-based idle game where users can collect, train, and earn unique NFT pets on a Polkadot asset hub network.
 
+## Live Demo
+https://petidot.pages.dev
 ## Overview
 
 PetiDot allows users to connect their Web3 wallet (like MetaMask) to interact with a smart contract managing PetiDot NFT pets. Users can mint new pets, view their collection, customize their pets' names, train them to advance their age stage, and send them out for playtime to potentially earn reward NFTs.
